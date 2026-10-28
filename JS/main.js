@@ -3,63 +3,82 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 1. Scene setup
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a24);
-
-
 
   // 2. Camera setup
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-
-  camera.position.set(5, 7, 10);
-  camera.lookAt(0, 1, 0);
-
-
+  // Uses your custom createPerspectiveCamera() function if defined, otherwise falls back to a standard camera
+  const camera = typeof createPerspectiveCamera === 'function' 
+    ? createPerspectiveCamera() 
+    : new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  
+  if (typeof createPerspectiveCamera !== 'function') {
+    camera.position.set(0, 12, 16);
+    camera.lookAt(0, 3, 0);
+  }
 
   // 3. Renderer setup
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true
-  });
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  // Enable shadows required for GameTable
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   document.body.appendChild(renderer.domElement);
 
+  // 4. Instantiate Scenery (GameTable handles ambient, sun, and bee point lights)
+  const gameTable = new GameTable(scene, renderer);
 
-
-  // 4. Studio Lighting
-  const ambientLight = new THREE.AmbientLight(
-    0xffffff,
-    0.8
-  );
-  scene.add(ambientLight);
-
-  const mainLight = new THREE.DirectionalLight(
-    0xffffff,
-    1.2
-  );
-
-  mainLight.position.set(5, 10, 7);
-  scene.add(mainLight);
-
-  const fillLight = new THREE.DirectionalLight(
-    0x446688,
-    0.6
-  );
-
-  fillLight.position.set(-5, -5, -5);
-  scene.add(fillLight);
+  // Instantiate SkyBox if SkyBox.js defines SkyBox globally
+  if (typeof SkyBox !== 'undefined') {
+    const skyBox = new SkyBox(scene);
+  }
 
 
 
-  // 5. Create Deck
+  // 5. Detect Table Height
+  let tableHeight = 3;
+
+  // Find the highest horizontal surface near the center of the table
+  const raycaster = new THREE.Raycaster();
+
+  const rayOrigin = new THREE.Vector3(0, 100, 0);
+  const rayDirection = new THREE.Vector3(0, -1, 0);
+
+  raycaster.set(rayOrigin, rayDirection);
+
+  // Only test meshes belonging to the table area
+  const tableMeshes = [];
+
+  scene.traverse((object) => {
+
+    if (object.isMesh) {
+
+      const box = new THREE.Box3().setFromObject(object);
+
+      // Ignore objects far above the tabletop
+      if (box.max.y < 20 && box.min.y > -20) {
+        tableMeshes.push(object);
+      }
+
+    }
+
+  });
+
+  const intersections = raycaster.intersectObjects(tableMeshes, true);
+
+  if (intersections.length > 0) {
+
+    tableHeight = intersections[0].point.y;
+
+  }
+
+  // Small offset so cards sit above the surface
+  tableHeight += 0.03;
+
+
+
+  // 6. Create Deck
   const deck = [];
 
   const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
@@ -102,21 +121,28 @@ window.addEventListener('DOMContentLoaded', () => {
   const deckX = -2;
   const pileX = 2;
 
+  // Card centers must be half a card thickness above the table
+  const cardBaseHeight = tableHeight + 0.02;
+
   deck.forEach((card, index) => {
 
     // Lay each card face down
     card.mesh.rotation.x = Math.PI / 2;
 
-    // Stack cards vertically
-    card.setPosition(deckX, index * cardSpacing, 0);
+    // Stack cards vertically above the table
+    card.setPosition(deckX, cardBaseHeight + index * cardSpacing, 0);
 
     card.addToScene(scene);
+
+    // Enable shadows on cards
+    card.mesh.castShadow = true;
+    card.mesh.receiveShadow = true;
 
   });
 
 
 
-  // 6. Card Animation
+  // 7. Card Animation
   let dealtCount = 0;
 
   const clock = new THREE.Clock();
@@ -173,8 +199,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const startX = deckX;
     const endX = pileX;
 
-    const startY = cardIndex * cardSpacing;
-    const endY = dealtIndex * cardSpacing;
+    const startY = cardBaseHeight + cardIndex * cardSpacing;
+    const endY = cardBaseHeight + dealtIndex * cardSpacing;
 
     // Move horizontally between piles
     mesh.position.x =
@@ -207,26 +233,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
-  // 7. Animation Loop
+  // 8. Animation Loop
   function animate() {
 
     requestAnimationFrame(animate);
 
     const deltaTime = clock.getDelta();
 
+    // Update WASD bee/point light movement
+    gameTable.update();
+
+    // Update card flipping animation
     updateCards(deltaTime);
 
-    renderer.render(
-      scene,
-      camera
-    );
+    renderer.render(scene, camera);
   }
 
   animate();
 
 
 
-  // 8. Window Resize
+  // 9. Window Resize
   window.addEventListener('resize', () => {
 
     const aspect = window.innerWidth / window.innerHeight;
@@ -234,10 +261,7 @@ window.addEventListener('DOMContentLoaded', () => {
     camera.aspect = aspect;
     camera.updateProjectionMatrix();
 
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
   });
 
