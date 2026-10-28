@@ -2,82 +2,57 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 1. Scene setup
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a24);
-
-
 
   // 2. Camera setup
-  const camera = createPerspectiveCamera();
-
-
+  // Uses your custom createPerspectiveCamera() function if defined, otherwise falls back to a standard camera
+  const camera = typeof createPerspectiveCamera === 'function' 
+    ? createPerspectiveCamera() 
+    : new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  
+  if (typeof createPerspectiveCamera !== 'function') {
+    camera.position.set(0, 12, 16);
+    camera.lookAt(0, 3, 0);
+  }
 
   // 3. Renderer setup
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true
-  });
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  // Enable shadows required for GameTable
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   document.body.appendChild(renderer.domElement);
 
+  // 4. Instantiate Scenery (GameTable handles ambient, sun, and bee point lights)
+  const gameTable = new GameTable(scene, renderer);
 
-
-  // 4. Studio Lighting
-  const ambientLight = new THREE.AmbientLight(
-    0xffffff,
-    0.8
-  );
-  scene.add(ambientLight);
-
-  const mainLight = new THREE.DirectionalLight(
-    0xffffff,
-    1.2
-  );
-
-  mainLight.position.set(5, 10, 7);
-  scene.add(mainLight);
-
-  const fillLight = new THREE.DirectionalLight(
-    0x446688,
-    0.6
-  );
-
-  fillLight.position.set(-5, -5, -5);
-  scene.add(fillLight);
-
-
+  // Instantiate SkyBox if SkyBox.js defines SkyBox globally
+  if (typeof SkyBox !== 'undefined') {
+    const skyBox = new SkyBox(scene);
+  }
 
   // 5. Animation Loop
   function animate() {
-
     requestAnimationFrame(animate);
 
-    renderer.render(
-      scene,
-      camera
-    );
+    // Update WASD bee/point light movement
+    gameTable.update();
+
+    renderer.render(scene, camera);
   }
 
   animate();
 
-
-
   // 6. Window Resize
   window.addEventListener('resize', () => {
-
     const aspect = window.innerWidth / window.innerHeight;
 
     camera.aspect = aspect;
     camera.updateProjectionMatrix();
 
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
-
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
 });
