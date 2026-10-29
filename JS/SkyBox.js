@@ -5,11 +5,11 @@ class SkyBox {
   }
 
   init() {
-    // 1. Create large cube geometry surrounding the scene
+    // create the cube
     const boxSize = 400;
     const geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
 
-    // 2. Generate procedural materials for each face [px, nx, py, ny, pz, nz]
+    // generate material for each face
     const materials = [
       this.createSkyMaterial('side', 0),   // Right (+X)
       this.createSkyMaterial('side', 1),   // Left (-X)
@@ -19,7 +19,7 @@ class SkyBox {
       this.createSkyMaterial('side', 3)    // Back (-Z)
     ];
 
-    // 3. Construct mesh
+    // make mesh
     this.skyMesh = new THREE.Mesh(geometry, materials);
     this.scene.add(this.skyMesh);
   }
@@ -33,15 +33,15 @@ class SkyBox {
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
 
     if (type === 'top') {
-      // Zenith blue sky
+      // blue sky
       gradient.addColorStop(0, '#1a4988');
       gradient.addColorStop(1, '#3a83e6');
     } else if (type === 'bottom') {
-      // Ground plane color transition under horizon
+      // ground plane
       gradient.addColorStop(0, '#759e66');
       gradient.addColorStop(1, '#3a7d34');
     } else {
-      // Side sky gradient (Zenith blue -> Horizon light blue -> Ground seam)
+      // get the sky gradient
       gradient.addColorStop(0, '#1a4988');
       gradient.addColorStop(0.55, '#569af2');
       gradient.addColorStop(0.85, '#bce3ff');
@@ -52,20 +52,20 @@ class SkyBox {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 512, 512);
 
-    // Add soft procedural clouds along the horizon on side faces
+    // adds clouds on the sides
     if (type === 'side') {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
       
       const offsetX = (sideIndex * 120) % 200;
       
-      // Cloud cluster 1
+      // first cluster
       ctx.beginPath();
       ctx.arc(100 + offsetX, 390, 60, 0, Math.PI * 2);
       ctx.arc(170 + offsetX, 375, 85, 0, Math.PI * 2);
       ctx.arc(250 + offsetX, 395, 55, 0, Math.PI * 2);
       ctx.fill();
 
-      // Cloud cluster 2
+      // second cluster
       ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
       ctx.beginPath();
       ctx.arc(340 + offsetX, 410, 45, 0, Math.PI * 2);
@@ -76,7 +76,7 @@ class SkyBox {
 
     const texture = new THREE.CanvasTexture(canvas);
 
-    // BackSide renders interior faces of the cube
+    // backside renders interior faces of the cube
     return new THREE.MeshBasicMaterial({
       map: texture,
       side: THREE.BackSide
