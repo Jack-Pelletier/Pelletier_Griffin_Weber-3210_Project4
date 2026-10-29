@@ -162,7 +162,7 @@ class GameTable {
       eye.position.set(1, 0.3, zSide * 0.45);
       beeGroup.add(eye);
 
-      const pupilGeo = new THREE.SphereGeometry(0.15, 16, 16);
+      const pupilGeo = new THREE.SphereGeometry(0.15, 18, 18);
       const pupil = new THREE.Mesh(pupilGeo, blackMat);
       pupil.position.set(1.15, 0.35, zSide * 0.55);
       beeGroup.add(pupil);
