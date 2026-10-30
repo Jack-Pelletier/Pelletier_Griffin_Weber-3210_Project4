@@ -120,7 +120,7 @@ class GameTable {
   // create the bee
   createBee() {
     const beeGroup = new THREE.Group();
-    beeGroup.position.set(0, 9, 0);
+    beeGroup.position.set(0, 12, 0);
 
     const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.4 });
     const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
