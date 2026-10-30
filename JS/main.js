@@ -133,16 +133,29 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const cardSpacing = 0.045;
   const deckX = -2;
-
-  const players=[
-    { x: -3, z: -2 }, 
-    { x: 0,  z: 3 },  
-    { x: 3,  z: -2 } 
+  let activeMove = null;
+  const playerHands=[
+   [],
+   [],
+   []
 
   ];
 
-  // Card centers must be half a card thickness above the table
-  const cardBaseHeight = tableHeight + 0.02;
+  const playerCardCounts = [0, 0, 0];
+
+  const players = [
+    { x: -3, z: -2 },
+    { x: 0, z: 3 },
+    { x: 3, z: -2 }
+];
+
+  const playPostions = [
+      { x: -1.5, z: 0 },
+    { x: 0, z: 0 },
+    { x: 1.5, z: 0 }
+  ];
+
+const cardBaseHeight = tableHeight + 0.02;
 
   deck.forEach((card, index) => {
     card.mesh.rotation.x = Math.PI / 2;
@@ -161,45 +174,78 @@ window.addEventListener('DOMContentLoaded', () => {
   let animationTime = 0;
   const animationDuration = 0.6;
   let movingCard = null;
-  const playerCardCounts = [0, 0, 0];
-
-  let currentPlayer = 0;
+  
 
   let cardStartPosition = new THREE.Vector3();
   let cardEndPosition = new THREE.Vector3();
 
+let cardPot = [];
+let faceUpCards = [];
 
-  // ArrowRight deals a card
-  window.addEventListener('keydown', (event) => {
-    if (event.code === 'ArrowRight' && !isAnimating) {
-      return;
+let moveQueue = [];
+let queueCallBack = null;
+
+let gameOver = false;
+
+function getCardRank(card){
+
+const rankValues = {
+        '2': 2,
+        '3': 3,
+        '4': 4,
+        '5': 5,
+        '6': 6,
+        '7': 7,
+        '8': 8,
+        '9': 9,
+        '10': 10,
+        'J': 11,
+        'Q': 12,
+        'K': 13,
+        'A': 14
+};
+return rankValues[card.value];
+
+}
+
+
+function getActivePlayerrs(){
+  return playerHands.map((hand, index) => hand.length > 0 ? index : -1).filter(index => index !== -1);
+}
+
+function startQueue(actions, onComplete){
+  moveQueue = actions;
+  queueCallBack = onComplete;
+  isAnimating = true;
+  startNextMove();
+}
+
+function startNextMove(){
+  if(moveQueue.length === 0){
+    activeMove = null;
+    movingCard = null;
+    isAnimating = false;
+
+    const callBack = queueCallBack;
+    queueCallBack = null;
+
+    if(callBack){
+      callBack();
     }
-      if (dealtCount >= deck.length) {
-      return;
-      }
-        movingCard = deck[deck.length - 1 - dealtCount];
+    return;
+  }
 
-        const player = players[currentPlayer];
+  activeMove = moveQueue.shift();
+  movingCard = activeMove.card;
 
-        cardStartPosition.set(
-          movingCard.mesh.position.x,
-          movingCard.mesh.position.y,
-          movingCard.mesh.position.z
-      );
+  cardStartPosition.copy(movingCard.mesh.position);
+  cardEndPosition.copy(activeMove.target);
 
-
-      const stackHeight = cardBaseHeight + playerCardCounts[currentPlayer] * cardSpacing;
-
-      cardEndPosition.set(player.x, stackHeight, player.z);
-
-
-        isAnimating = true;
-        animationTime = 0;
-
-  });
+  animationTime = 0;
+}
 
   function updateCards(deltaTime) {
-    if (!isAnimating || movingCard === null) return;
+    if (!isAnimating || activeMove === null) return;
 
     animationTime += deltaTime;
     const progress = Math.min(animationTime / animationDuration, 1);
@@ -214,22 +260,253 @@ window.addEventListener('DOMContentLoaded', () => {
     cardStartPosition.z + (cardEndPosition.z - cardStartPosition.z) * smoothProgress;
 
     mesh.position.y =
-    cardStartPosition.y + (cardEndPosition.y - cardStartPosition.y) * smoothProgress;
-    Math.sin(progress * Math.PI) * 1.5;
+    cardStartPosition.y + (cardEndPosition.y - cardStartPosition.y) * smoothProgress +
+    Math.sin(progress * Math.PI) * 0.7;
 
     //keeps cards face down
-    mesh.rotation.x = Math.PI / 2;
     
     if (progress >= 1) {
       mesh.position.copy(cardEndPosition);
-      mesh.rotation.x = Math.PI / 2;
-      playerCardCounts[currentPlayer]++;
-      dealtCount++;
-      currentPlayer = (currentPlayer + 1) % players.length;
-      isAnimating = false;
+      mesh.rotation.x = activeMove.faceUpCards ? -Math.PI / 2 : Math.PI / 2;
+
+      activeMove = null;
       movingCard = null;
+
+    startNextMove();
     }
   }
+//card dealing 
+
+function dealCards(){
+const playerIndex = dealtCount % playerHands.length;
+  if(dealtCount >= deck.length){
+    return;
+  }
+
+  const card = deck[deck.length - 1 - dealtCount];
+  const player = players[playerIndex];
+
+  const stackHeight = cardBaseHeight + playerHands[playerIndex].length * cardSpacing;
+
+  const target = new THREE.Vector3(player.x, stackHeight, player.z);
+
+  startQueue([{card: card,
+    target: target,
+    faceUpCards: false
+  }],
+() => {
+
+  playerHands[playerIndex].push(card);
+  playerCardCounts[playerIndex]++;
+  dealtCount++;
+}
+
+
+  );
+
+}
+
+function roundStart(){
+  if (gameOver) return;
+
+  const activePlayers = getActivePlayerrs();
+
+  if(activePlayers.length <= 1){
+    endGame(activePlayers[0]);
+    return;
+  }
+
+
+cardPot = [];
+faceUpCards = [];
+
+const actions = [];
+
+activePlayers.forEach(playerIndex =>{
+  const card = playerHands[playerIndex].pop();
+  playerCardCounts[playerIndex]--;
+  cardPot.push(card);
+
+  faceUpCards.push({
+    playerIndex: playerIndex,
+    card: card
+  });
+
+  const position = playPostions[playerIndex];
+
+  actions.push({
+    card: card,
+
+    target: new THREE.Vector3(
+      position.x,
+      cardBaseHeight + cardPot.length * 0.003,
+      position.z
+    ),
+    faceUp : true
+  });
+
+});
+
+startQueue(actions, resolveRound);
+}
+
+function resolveRound(){
+  if(faceUpCards.length === 0)return;
+  let highestRank = -1;
+
+faceUpCards.forEach(play =>{
+  const rank = getCardRank(play.card);
+
+  if(rank > highestRank){
+    highestRank = rank;
+  }
+});
+    const tiedPlayers = faceUpCards.filter(play =>
+      getCardRank(play.card) === highestRank
+    );
+
+if(tiedPlayers.length ===1){
+  const winner = tiedPlayers[0].playerIndex;
+
+  awardPot(winner);
+
+  return;
+}
+beginWar(tiedPlayers.map(play => play.playerIndex)
+);
+}
+
+function beginWar(tiedPlayers) { 
+  const actions = [];
+  faceUpCards = [];
+  const eligiblePlayers = [];
+
+  tiedPlayers.forEach(playerIndex =>{
+    const hand = playerHands[playerIndex];
+    if(hand.length < 2){
+      return; 
+    }
+    eligiblePlayers.push(playerIndex);
+
+    if(hand.length >= 2){
+      const faceDownCard = hand.pop();
+      playerCardCounts[playerIndex]--;
+      cardPot.push(faceDownCard);
+      const position = playPostions[playerIndex];
+
+      actions.push({
+        card: faceDownCard,
+
+        target: new THREE.Vector3(position.x, cardBaseHeight + cardPot.length * 0.003, position.z
+        ),
+        faceUp: false
+      });
+    }
+
+    const faceUpCard = hand.pop();
+    playerCardCounts[playerIndex]--;
+    cardPot.push(faceUpCard);
+    faceUpCards.push({
+      playerIndex: playerIndex,
+      card: faceUpCard
+    });
+    const position = playPostions[playerIndex];
+
+    actions.push({
+      card: faceUpCard,
+      target: new THREE.Vector3(position.x, cardBaseHeight + cardPot.length * 0.003, position.z
+      ),
+      faceUp: true
+    });
+  });
+
+  if(eligiblePlayers.length === 1){
+
+    awardPot(eligiblePlayers[0]);
+return;
+  }
+
+  if(eligiblePlayers.length === 0){
+
+    const winner = playerHands.map((hand, index) =>({
+      index: index,
+      count: hand.length
+    }))
+    .sort((a, b) => b.count - a.count)[0].index;
+
+    awardPot(winner);
+
+    return;
+  }
+  startQueue(actions, resolveRound);
+}
+
+function awardPot(winnerIndex){
+  const winnerHand = playerHands[winnerIndex];
+  const winnerPosition = players[winnerIndex];
+
+  const wonCards = [... cardPot];
+  winnerHand.forEach((card, index) => {
+    card.mesh.position.set(winnerPosition.x, cardBaseHeight + (index + wonCards.length) * cardSpacing, winnerPosition.z);
+  });
+
+winnerHand.unshift(...wonCards);
+playerCardCounts[winnerIndex] = winnerHand.length;
+const actions = [];
+
+wonCards.forEach((card, index) => {
+  actions.push({
+    card: card,
+    target: new THREE.Vector3(winnerPosition.x, cardBaseHeight + index * cardSpacing, winnerPosition.z),
+    faceUp: false
+  });
+});
+cardPot = [];
+faceUp = [];
+
+startQueue(actions, () =>
+{
+  const remainingPlayers = getActivePlayerrs();
+
+  if(remainingPlayers.length === 1){
+    endGame(remainingPlayers[0]);
+    
+  }
+});
+
+}
+
+function endGame(winnerIndex){
+  gameOver = true;
+  if(winnerIndex === undefined){
+    return;
+
+  }
+  console.log("player " + (winnerIndex + 1) + " wins!!!");
+}
+
+window.addEventListener('keydown', (event) => {
+
+    if (event.key.toLowerCase() !== 'n') return;
+
+    if (isAnimating) return;
+
+    if (gameOver) return;
+
+    if (dealtCount < deck.length) {
+
+        dealCards();
+
+    } else {
+
+  
+        roundStart();
+    }
+});
+
+
+
+
 
   // 9. Main Animation Loop
   function animate() {
@@ -254,5 +531,4 @@ window.addEventListener('DOMContentLoaded', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
 });
