@@ -54,7 +54,7 @@ class GameTable {
     const rimMat = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.5 });
 
     // table top
-    const topGeo = new THREE.CylinderGeometry(6, 6, 0.4, 64);
+    const topGeo = new THREE.CylinderGeometry(8, 8, 0.4, 64);
     const top = new THREE.Mesh(topGeo, woodMat);
     top.position.y = 4;
     top.castShadow = true;
@@ -62,7 +62,7 @@ class GameTable {
     tableGroup.add(top);
 
     // table rim
-    const rimGeo = new THREE.TorusGeometry(6, 0.25, 16, 64);
+    const rimGeo = new THREE.TorusGeometry(8, 0.25, 16, 64);
     const rim = new THREE.Mesh(rimGeo, rimMat);
     rim.rotation.x = Math.PI / 2;
     rim.position.y = 4.2;
@@ -85,8 +85,8 @@ class GameTable {
     base.castShadow = true;
     base.receiveShadow = true;
     tableGroup.add(base);
-
-    this.scene.add(tableGroup);
+        tableGroup.scale.set(1.25, 1, 1.25);
+        this.scene.add(tableGroup);
     tableGroup.traverse((child) => {
       if (child.isMesh) this.allMeshes.push(child);
     });
@@ -120,7 +120,7 @@ class GameTable {
   // create the bee
   createBee() {
     const beeGroup = new THREE.Group();
-    beeGroup.position.set(0, 9, 0);
+    beeGroup.position.set(0, 12, 0);
 
     const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.4 });
     const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
