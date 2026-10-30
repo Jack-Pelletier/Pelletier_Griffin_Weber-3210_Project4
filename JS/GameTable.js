@@ -85,6 +85,7 @@ class GameTable {
     base.castShadow = true;
     base.receiveShadow = true;
     tableGroup.add(base);
+        tableGroup.scale.set(1.25, 1, 1.25);
         this.scene.add(tableGroup);
     tableGroup.traverse((child) => {
       if (child.isMesh) this.allMeshes.push(child);
