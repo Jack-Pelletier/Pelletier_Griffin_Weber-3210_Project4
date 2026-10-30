@@ -253,16 +253,17 @@ function startNextMove(){
     const smoothProgress = progress * progress * (3 - 2 * progress);
 
     const mesh = movingCard.mesh;
+mesh.position.x =
+  cardStartPosition.x +
+  (cardEndPosition.x - cardStartPosition.x) * smoothProgress;
 
-    mesh.position.x =
-    cardStartPosition.x + (cardEndPosition.x - cardStartPosition.x) * smoothProgress;
+mesh.position.z =
+  cardStartPosition.z +
+  (cardEndPosition.z - cardStartPosition.z) * smoothProgress;
 
-    mesh.position.z =
-    cardStartPosition.z + (cardEndPosition.z - cardStartPosition.z) * smoothProgress;
-
-    mesh.position.y =
-    cardStartPosition.y + (cardEndPosition.y - cardStartPosition.y) * smoothProgress +
-    Math.sin(progress * Math.PI) * 0.7;
+mesh.position.y =
+  cardStartPosition.y +
+  (cardEndPosition.y - cardStartPosition.y) * smoothProgress + Math.sin(progress * Math.PI) * 0.7;
 
     //keeps cards face down
     
@@ -270,16 +271,13 @@ function startNextMove(){
       mesh.position.copy(cardEndPosition);
       mesh.rotation.x = activeMove.faceUp ? -Math.PI / 2 : Math.PI / 2;
 
-      activeMove = null;
-      movingCard = null;
-
     startNextMove();
     }
   }
 //card dealing 
 
 function dealCards(){
-const playerIndex = dealtCount % playerHands.length;
+
   if(dealtCount >= deck.length){
     return;
   }
@@ -314,17 +312,19 @@ const playerIndex = dealtCount % playerHands.length;
     pendingCards[playerIndex]++;
   }
 
+  dealtCount = deck.length;
+
   startQueue(actions, () => {
 
     cardsToDeal.forEach(deal =>{
 
     playerHands[deal.playerIndex].push(deal.card);  
     });
-  dealtCount++;
+
  
   playerHands.forEach((hand, index) =>{
 
-  playerCardCounts[playerIndex]++;   
+  playerCardCounts[index] = hand.length;   
   });
  
   
