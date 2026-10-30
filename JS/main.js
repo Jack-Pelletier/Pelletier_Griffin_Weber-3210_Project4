@@ -132,7 +132,8 @@ window.addEventListener('DOMContentLoaded', () => {
   shuffleDeck();
 
   const cardSpacing = 0.045;
-  const deckX = -2;
+  const deckX = -4;
+  const deckZ = 3;
   let activeMove = null;
   const playerHands=[
    [],
@@ -159,7 +160,7 @@ const cardBaseHeight = tableHeight + 0.02;
 
   deck.forEach((card, index) => {
     card.mesh.rotation.x = Math.PI / 2;
-    card.setPosition(deckX, cardBaseHeight + index * cardSpacing, 0);
+    card.setPosition(deckX, cardBaseHeight + index * cardSpacing, deckZ);
     card.addToScene(scene);
 
     card.mesh.castShadow = true;
@@ -267,7 +268,7 @@ function startNextMove(){
     
     if (progress >= 1) {
       mesh.position.copy(cardEndPosition);
-      mesh.rotation.x = activeMove.faceUpCards ? -Math.PI / 2 : Math.PI / 2;
+      mesh.rotation.x = activeMove.faceUp ? -Math.PI / 2 : Math.PI / 2;
 
       activeMove = null;
       movingCard = null;
@@ -283,26 +284,51 @@ const playerIndex = dealtCount % playerHands.length;
     return;
   }
 
-  const card = deck[deck.length - 1 - dealtCount];
+  const actions = [];
+  const cardsToDeal = [];
+  
+  const pendingCards = [0, 0, 0];
+
+  for(let i = dealtCount; i < deck.length; i++){
+    const playerIndex = i % playerHands.length;
+
+   const card = deck[deck.length - 1 - i]; 
+
+    
   const player = players[playerIndex];
 
-  const stackHeight = cardBaseHeight + playerHands[playerIndex].length * cardSpacing;
+  const stackHeight = cardBaseHeight + (playerHands[playerIndex].length + pendingCards[playerIndex])* cardSpacing;
 
   const target = new THREE.Vector3(player.x, stackHeight, player.z);
 
-  startQueue([{card: card,
-    target: target,
-    faceUpCards: false
-  }],
-() => {
+    actions.push({
+      card: card,
+      target: target,
+      faceUp: false
+    });
 
-  playerHands[playerIndex].push(card);
-  playerCardCounts[playerIndex]++;
+    cardsToDeal.push({
+      playerIndex: playerIndex,
+      card: card
+    });
+    pendingCards[playerIndex]++;
+  }
+
+  startQueue(actions, () => {
+
+    cardsToDeal.forEach(deal =>{
+
+    playerHands[deal.playerIndex].push(deal.card);  
+    });
   dealtCount++;
-}
+ 
+  playerHands.forEach((hand, index) =>{
 
-
-  );
+  playerCardCounts[playerIndex]++;   
+  });
+ 
+  
+});
 
 }
 
@@ -462,7 +488,7 @@ wonCards.forEach((card, index) => {
   });
 });
 cardPot = [];
-faceUp = [];
+faceUpCards = [];
 
 startQueue(actions, () =>
 {
