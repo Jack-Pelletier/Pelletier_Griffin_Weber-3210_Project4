@@ -398,27 +398,28 @@ if(tiedPlayers.length ===1){
 
   return;
 }
-beginWar(tiedPlayers.map(play => play.playerIndex)
-);
+beginWar();
 }
-
-function beginWar(tiedPlayers) { 
+//begins the war incase of a tie in the play 
+function beginWar() { 
   const actions = [];
   faceUpCards = [];
   const eligiblePlayers = [];
 
-  tiedPlayers.forEach(playerIndex =>{
-    const hand = playerHands[playerIndex];
-    if(hand.length < 2){
-      return; 
-    }
-    eligiblePlayers.push(playerIndex);
+  playerHands.forEach((hand, playerIndex) =>{
 
-    if(hand.length >= 2){
+    if(hand.length === 0){
+    return; 
+    }
+ eligiblePlayers.push(playerIndex);
+
+const position = playPostions[playerIndex];
+
+ if(hand.length >= 2){
       const faceDownCard = hand.pop();
       playerCardCounts[playerIndex]--;
       cardPot.push(faceDownCard);
-      const position = playPostions[playerIndex];
+ 
 
       actions.push({
         card: faceDownCard,
@@ -436,8 +437,7 @@ function beginWar(tiedPlayers) {
       playerIndex: playerIndex,
       card: faceUpCard
     });
-    const position = playPostions[playerIndex];
-
+  
     actions.push({
       card: faceUpCard,
       target: new THREE.Vector3(position.x, cardBaseHeight + cardPot.length * 0.003, position.z
@@ -453,15 +453,6 @@ return;
   }
 
   if(eligiblePlayers.length === 0){
-
-    const winner = playerHands.map((hand, index) =>({
-      index: index,
-      count: hand.length
-    }))
-    .sort((a, b) => b.count - a.count)[0].index;
-
-    awardPot(winner);
-
     return;
   }
   startQueue(actions, resolveRound);
