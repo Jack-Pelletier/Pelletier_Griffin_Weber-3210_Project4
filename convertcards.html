@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Card Converter</title>
+</head>
+<body>
+
+    <h2>Convert Face Card Images</h2>
+
+    <p>Select all 12 Jack, Queen, and King PNG images.</p>
+
+    <input type="file" id="cardImages" accept="image/png" multiple>
+
+    <button id="convertButton">Generate FaceCardImages.js</button>
+
+    <p id="status"></p>
+
+    <script>
+
+        document.getElementById('convertButton').addEventListener('click', async () => {
+
+            const files = Array.from(document.getElementById('cardImages').files);
+            const status = document.getElementById('status');
+
+            if (files.length !== 12) {
+                status.textContent = 'Please select all 12 face-card images.';
+                return;
+            }
+
+            const images = {};
+
+            for (const file of files) {
+
+                const dataURL = await new Promise((resolve, reject) => {
+
+                    const reader = new FileReader();
+
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+
+                    reader.readAsDataURL(file);
+
+                });
+
+                const cardName = file.name.replace(/\.png$/i, '');
+
+                images[cardName] = dataURL;
+            }
+
+            const content = 'const faceCardImages = ' +
+                JSON.stringify(images, null, 4) + ';';
+
+            const blob = new Blob([content], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'FaceCardImages.js';
+            link.click();
+
+            URL.revokeObjectURL(url);
+
+            status.textContent = 'FaceCardImages.js generated successfully!';
+        });
+
+    </script>
+
+</body>
+</html>

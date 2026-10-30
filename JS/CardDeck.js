@@ -70,6 +70,51 @@ class Card {
         );
 
         this.mesh.add(outline);
+
+        if (['J', 'Q', 'K'].includes(this.value)) {
+
+            const faceCardNames = {
+                J: 'Jack',
+                Q: 'Queen',
+                K: 'King'
+            };
+
+            const cardName = `${faceCardNames[this.value]} of ${this.suit}`;
+
+            const imageData = typeof faceCardImages !== 'undefined'
+                ? faceCardImages[cardName]
+                : null;
+
+            if (imageData) {
+
+                const textureLoader = new THREE.TextureLoader();
+
+                textureLoader.load(
+                    imageData,
+                    (texture) => {
+
+                        texture.colorSpace = THREE.SRGBColorSpace;
+
+                        frontMaterial.map = texture;
+                        frontMaterial.needsUpdate = true;
+
+                        this.frontTexture = texture;
+
+                    },
+                    undefined,
+                    (error) => {
+
+                        console.error('Failed to load:', cardName, error);
+
+                    }
+                );
+
+            } else {
+
+                console.error('Missing face card:', cardName);
+
+            }
+        }
     }
 
     // Create front texture based on card value and suit
@@ -112,9 +157,50 @@ class Card {
         card.fillText(symbol, 20, 100);
 
         // Center suit symbol
-        card.font = '130px Arial';
-        card.textAlign = 'center';
-        card.fillText(symbol, 128, 240);
+        const cardNumber = parseInt(this.value);
+
+        if (this.value === 'A' || isNaN(cardNumber)) {
+
+            card.font = '130px Arial';
+            card.textAlign = 'center';
+            card.fillText(symbol, 128, 240);
+
+        } else {
+
+            card.font = '55px Arial';
+            card.textAlign = 'center';
+            card.textBaseline = 'middle';
+
+            const columns = cardNumber <= 3 ? 1 : 2;
+            const rows = Math.ceil(cardNumber / columns);
+
+            const centerX = 128;
+            const centerY = 192;
+
+            const spacingX = 75;
+            const spacingY = Math.min(65, 250 / Math.max(rows - 1, 1));
+
+            for (let i = 0; i < cardNumber; i++) {
+
+                const column = i % columns;
+                const row = Math.floor(i / columns);
+
+                let x = centerX;
+                let y = centerY + (row - (rows - 1) / 2) * spacingY;
+
+                if (columns === 2) {
+                    x = centerX + (column === 0 ? -spacingX / 2 : spacingX / 2);
+                }
+
+                if (cardNumber % 2 !== 0 && i === cardNumber - 1 && columns === 2) {
+                    x = centerX;
+                }
+
+                card.fillText(symbol, x, y);
+            }
+
+            card.textBaseline = 'alphabetic';
+        }
 
         // Bottom-right value and suit
         card.save();
