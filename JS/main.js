@@ -133,7 +133,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const cardSpacing = 0.045;
   const deckX = -2;
-<<<<<<< HEAD
 
   const players=[
     { x: -3, z: -2 }, 
@@ -143,9 +142,6 @@ window.addEventListener('DOMContentLoaded', () => {
   ];
 
   // Card centers must be half a card thickness above the table
-=======
-  const pileX = 2;
->>>>>>> 17c3c02606ac4f57f8dd00759e0f3d25092dfe8c
   const cardBaseHeight = tableHeight + 0.02;
 
   deck.forEach((card, index) => {
@@ -169,14 +165,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
   let currentPlayer = 0;
 
-  let cardStartPosition = new THREE.vector3();
-  let cardEndPosition = new THREE.vector3();
+  let cardStartPosition = new THREE.Vector3();
+  let cardEndPosition = new THREE.Vector3();
 
 
   // ArrowRight deals a card
   window.addEventListener('keydown', (event) => {
     if (event.code === 'ArrowRight' && !isAnimating) {
-<<<<<<< HEAD
       return;
     }
       if (dealtCount >= deck.length) {
@@ -186,7 +181,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const player = players[currentPlayer];
 
-        startPosition.set(
+        cardStartPosition.set(
           movingCard.mesh.position.x,
           movingCard.mesh.position.y,
           movingCard.mesh.position.z
@@ -201,14 +196,6 @@ window.addEventListener('DOMContentLoaded', () => {
         isAnimating = true;
         animationTime = 0;
 
-=======
-      if (dealtCount < deck.length) {
-        movingCard = deck[deck.length - 1 - dealtCount];
-        isAnimating = true;
-        animationTime = 0;
-      }
-    }
->>>>>>> 17c3c02606ac4f57f8dd00759e0f3d25092dfe8c
   });
 
   function updateCards(deltaTime) {
@@ -219,7 +206,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const smoothProgress = progress * progress * (3 - 2 * progress);
 
     const mesh = movingCard.mesh;
-<<<<<<< HEAD
 
     mesh.position.x =
     cardStartPosition.x + (cardEndPosition.x - cardStartPosition.x) * smoothProgress;
@@ -234,25 +220,12 @@ window.addEventListener('DOMContentLoaded', () => {
     //keeps cards face down
     mesh.rotation.x = Math.PI / 2;
     
-
-=======
->>>>>>> 17c3c02606ac4f57f8dd00759e0f3d25092dfe8c
-    const cardIndex = deck.indexOf(movingCard);
-    const dealtIndex = deck.length - 1 - cardIndex;
-
-    const startX = deckX;
-    const endX = pileX;
-    const startY = cardBaseHeight + cardIndex * cardSpacing;
-    const endY = cardBaseHeight + dealtIndex * cardSpacing;
-
-    mesh.position.x = startX + (endX - startX) * smoothProgress;
-    mesh.position.y = startY + (endY - startY) * smoothProgress + Math.sin(progress * Math.PI) * 1.5;
-    mesh.rotation.x = Math.PI / 2 - Math.PI * smoothProgress;
-
     if (progress >= 1) {
-      mesh.position.set(endX, endY, 0);
-      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.copy(cardEndPosition);
+      mesh.rotation.x = Math.PI / 2;
+      playerCardCounts[currentPlayer]++;
       dealtCount++;
+      currentPlayer = (currentPlayer + 1) % players.length;
       isAnimating = false;
       movingCard = null;
     }
