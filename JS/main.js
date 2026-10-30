@@ -181,7 +181,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let isAnimating = false;
   let animationTime = 0;
   const dealingAnimationDuration = 0.08;
-  const playAnimationDuration = 0.6;
+  const playAnimationDuration = 0.3;
   let isDealing = false;
   let movingCard = null;
   
@@ -199,6 +199,7 @@ window.addEventListener('DOMContentLoaded', () => {
  function getCardRank(card){
 
  const rankValues = {
+        'A': 1,
         '2': 2,
         '3': 3,
         '4': 4,
@@ -210,8 +211,7 @@ window.addEventListener('DOMContentLoaded', () => {
         '10': 10,
         'J': 11,
         'Q': 12,
-        'K': 13,
-        'A': 14
+        'K': 13
 };
  return rankValues[card.value];
 
