@@ -119,7 +119,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Position cards into a physical stack
   const cardSpacing = 0.045;
   const deckX = -2;
-  const pileX = 2;
+
+  const players=[
+    { x: -3, z: -2 }, 
+    { x: 0,  z: 3 },  
+    { x: 3,  z: -2 } 
+
+  ];
 
   // Card centers must be half a card thickness above the table
   const cardBaseHeight = tableHeight + 0.02;
@@ -153,22 +159,41 @@ window.addEventListener('DOMContentLoaded', () => {
   const animationDuration = 0.6;
 
   let movingCard = null;
+  const playerCardCounts = [0, 0, 0];
+
+  let currentPlayer = 0;
+
+  let cardStartPosition = new THREE.vector3();
+  let cardEndPosition = new THREE.vector3();
+
 
   // Move cards from face-down deck to face-up pile
   window.addEventListener('keydown', (event) => {
 
     if (event.code === 'ArrowRight' && !isAnimating) {
-
-      if (dealtCount < deck.length) {
-
+      return;
+    }
+      if (dealtCount >= deck.length) {
+      return;
+      }
         movingCard = deck[deck.length - 1 - dealtCount];
+
+        const player = players[currentPlayer];
+
+        startPosition.set(
+          movingCard.mesh.position.x,
+          movingCard.mesh.position.y,
+          movingCard.mesh.position.z
+      );
+
+
+      const stackHeight = cardBaseHeight + playerCardCounts[currentPlayer] * cardSpacing;
+
+      cardEndPosition.set(player.x, stackHeight, player.z);
+
 
         isAnimating = true;
         animationTime = 0;
-
-      }
-
-    }
 
   });
 
@@ -191,6 +216,20 @@ window.addEventListener('DOMContentLoaded', () => {
       progress * progress * (3 - 2 * progress);
 
     const mesh = movingCard.mesh;
+
+    mesh.position.x =
+    cardStartPosition.x + (cardEndPosition.x - cardStartPosition.x) * smoothProgress;
+
+    mesh.position.z =
+    cardStartPosition.z + (cardEndPosition.z - cardStartPosition.z) * smoothProgress;
+
+    mesh.position.y =
+    cardStartPosition.y + (cardEndPosition.y - cardStartPosition.y) * smoothProgress;
+    Math.sin(progress * Math.PI) * 1.5;
+
+    //keeps cards face down
+    mesh.rotation.x = Math.PI / 2;
+    
 
     const cardIndex = deck.indexOf(movingCard);
 
